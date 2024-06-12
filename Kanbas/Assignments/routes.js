@@ -1,31 +1,22 @@
 import db from "../Database/index.js";
 
 export default function AssignmentRoutes(app) {
-    app.get("/api/courses/:cid/modules/assignments", (req, res) => {
+    app.get("/api/courses/:cid/assignments", (req, res) => {
         const { cid } = req.params;
         const assignments = db.assignments.filter((a) => a.course === cid);
         res.json(assignments);
     });
 
-    app.post("/api/courses/:cid/modules/assignments", (req, res) => {
+    app.post("/api/courses/:cid/assignments", (req, res) => {
         const { cid } = req.params;
-        const { title, points, due_date, available_date, description } = req.body;
-
-        if (!title || !points || !due_date || !available_date || !description) {
-            return res.status(400).json({ error: "All fields are required" });
-        }
 
         const newAssignment = {
-            title,
-            points: Number(points),
-            due_date,
-            available_date,
-            description,
+            ...req.body,
             course: cid,
             _id: new Date().getTime().toString(),
         };
         db.assignments.push(newAssignment);
-        res.status(201).json(newAssignment);
+        res.json(newAssignment);
     });
 
     app.put("/api/assignments/:aid", (req, res) => {
@@ -41,7 +32,7 @@ export default function AssignmentRoutes(app) {
         res.sendStatus(204);
     });
 
-    app.delete("/api/courses/:cid/modules/assignments/:aid", (req, res) => {
+    app.delete("/api/assignments/:aid", (req, res) => {
         const { aid } = req.params;
         const index = db.assignments.findIndex((a) => a._id === aid);
         if (index === -1) {
