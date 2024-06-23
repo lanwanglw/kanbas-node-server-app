@@ -10,6 +10,7 @@ export default function UserRoutes(app) {
         const status = await dao.deleteUser(req.params.userId);
         res.json(status);
     };
+
     const findAllUsers = async (req, res) => {
         const { role, name } = req.query;
         if (role) {
@@ -25,10 +26,12 @@ export default function UserRoutes(app) {
         const users = await dao.findAllUsers();
         res.json(users);
     };
+
     const findUserById = async (req, res) => {
         const user = await dao.findUserById(req.params.userId);
         res.json(user);
     };
+
     const updateUser = async (req, res) => {
         const { userId } = req.params;
         const status = await dao.updateUser(userId, req.body);
@@ -36,15 +39,19 @@ export default function UserRoutes(app) {
     };
 
     const signup = async (req, res) => {
-        const user = await dao.findUserByUsername(req.body.username);
-        if (user) {
-            res.status(400).json(
-                { message: "Username already taken" });
-            return;
+        try {
+            const user = await dao.findUserByUsername(req.body.username);
+            if (user) {
+                res.status(400).json({ message: "Username already taken" });
+                return;
+            }
+            const newUser = await dao.createUser(req.body);
+            req.session["currentUser"] = newUser;
+            res.json(newUser);
+        } catch (error) {
+            console.error("Signup error: ", error); // Log the error
+            res.status(500).json({ message: "An unexpected error occurred during signup." });
         }
-        const currentUser = await dao.createUser(req.body);
-        req.session["currentUser"] = currentUser;
-        res.json(currentUser);
     };
 
     const signin = async (req, res) => {
@@ -57,10 +64,12 @@ export default function UserRoutes(app) {
             res.status(401).json({ message: "Unable to login. Try again later." });
         }
     };
+
     const signout = (req, res) => {
         req.session.destroy();
         res.sendStatus(200);
     };
+
     const profile = async (req, res) => {
         const currentUser = req.session["currentUser"];
         if (!currentUser) {
@@ -69,6 +78,7 @@ export default function UserRoutes(app) {
         }
         res.json(currentUser);
     };
+
     app.post("/api/users", createUser);
     app.get("/api/users", findAllUsers);
     app.get("/api/users/:userId", findUserById);
