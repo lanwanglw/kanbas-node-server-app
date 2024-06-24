@@ -1,4 +1,7 @@
 import * as dao from "./dao.js";
+import mongoose from "mongoose";
+import Course from "../Courses/model.js";
+
 export default function ModuleRoutes(app) {
     app.post("/api/courses/:cid/modules", async (req, res) => {
         const { cid } = req.params;
@@ -7,12 +10,22 @@ export default function ModuleRoutes(app) {
             res.sendStatus(401);
             return;
         }
-        const newModule = await dao.createModule({
-            ...req.body,
-            course: cid,
-            author: currentUser._id,
-        });
-        res.send(newModule);
+        try {
+            const course = await Course.findById(cid);
+            if (!course) {
+                res.status(400).send({ error: "Invalid course ID" });
+                return;
+            }
+            const courseId = mongoose.Types.ObjectId(cid); // Convert cid to ObjectId
+            const newModule = await dao.createModule({
+                ...req.body,
+                course: courseId,
+                author: currentUser._id,
+            });
+            res.send(newModule);
+        } catch (error) {
+            res.status(500).send(error);
+        }
     });
 
     app.get("/api/courses/:cid/modules", async (req, res) => {
@@ -22,8 +35,18 @@ export default function ModuleRoutes(app) {
             res.send([]);
             return;
         }
-        const modules = await dao.findModulesByCourse(cid);
-        res.send(modules);
+        try {
+            const course = await Course.findById(cid);
+            if (!course) {
+                res.status(400).send({ error: "Invalid course ID" });
+                return;
+            }
+            const courseId = mongoose.Types.ObjectId(cid); // Convert cid to ObjectId
+            const modules = await dao.findModulesByCourse(courseId);
+            res.send(modules);
+        } catch (error) {
+            res.status(500).send(error);
+        }
     });
 
     app.get("/api/modules", async (req, res) => {
