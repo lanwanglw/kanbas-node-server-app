@@ -8,19 +8,19 @@ export const createQuiz = async (quizData) => {
 };
 
 export const getQuizById = async (id) => {
-    return await Quiz.findById(id);
+    return Quiz.findById(id);
 };
 
 export const getAllQuizzes = async () => {
-    return await Quiz.find();
+    return Quiz.find();
 };
 
 export const updateQuiz = async (id, updatedData) => {
-    return await Quiz.findByIdAndUpdate(id, updatedData, { new: true });
+    return Quiz.findByIdAndUpdate(id, updatedData, {new: true});
 };
 
 export const deleteQuiz = async (id) => {
-    return await Quiz.findByIdAndDelete(id);
+    return Quiz.findByIdAndDelete(id);
 };
 
 export const createQuizAnswer = async (quizAnswerData) => {
@@ -30,9 +30,41 @@ export const createQuizAnswer = async (quizAnswerData) => {
 };
 
 export const getQuizAnswer = async (quizId, userId) => {
-    return await QuizAnswer.findOne({ quizId, userId });
+    return QuizAnswer.findOne({quizId, userId});
 };
 
 export const updateQuizAnswer = async (quizId, userId, answers) => {
-    return await QuizAnswer.findOneAndUpdate({ quizId, userId }, { answers, submittedAt: new Date() }, { new: true });
+    return QuizAnswer.findOneAndUpdate({quizId, userId}, {answers, submittedAt: new Date()}, {new: true});
 };
+
+// Create or update quiz answers for a specific user and attempt
+export const createOrUpdateQuizAnswer = async (quizAnswerData) => {
+    const { quizId, userId, attempt } = quizAnswerData;
+    const existingAnswer = await QuizAnswer.findOne({ quizId: quizAnswerData.quizId, userId: quizAnswerData.userId, attempt });
+    if (existingAnswer) {
+        existingAnswer.answers = quizAnswerData.answers;
+        existingAnswer.score = quizAnswerData.score;
+        existingAnswer.submittedAt = new Date();
+        await existingAnswer.save();
+        return existingAnswer;
+    } else {
+        const quizAnswer = new QuizAnswer(quizAnswerData);
+        await quizAnswer.save();
+        return quizAnswer;
+    }
+};
+
+// Fetch quiz answers for a specific user
+export const getQuizAnswerByQuizIdAndUserId = async (quizId, userId) => {
+    return QuizAnswer.findOne({quizId, userId}).sort({ attempt: -1 });
+};
+
+// Fetch all quiz attempts for a specific user
+export const getQuizAttemptsByQuizIdAndUserId = async (quizId, userId) => {
+    return QuizAnswer.find({quizId, userId}).sort({attempt: 1});
+};
+
+export const getQuizzesByCourseIds = async (courseIds) => {
+    return Quiz.find({course: {$in: courseIds}});
+};
+
