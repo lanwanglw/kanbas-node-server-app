@@ -67,4 +67,3 @@ export const getQuizAttemptsByQuizIdAndUserId = async (quizId, userId) => {
 export const getQuizzesByCourseIds = async (courseIds) => {
     return Quiz.find({course: {$in: courseIds}});
 };
-
