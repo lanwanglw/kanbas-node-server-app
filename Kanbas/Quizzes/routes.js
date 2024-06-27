@@ -1,10 +1,18 @@
 import * as dao from "./dao.js";
 import Course from "../Courses/model.js";
-import mongoose from "mongoose";
 
 export default function QuizRoutes(app) {
-    // Create a quiz
-    app.post("/api/quizzes", async (req, res) => {
+    // Middleware to check user role
+    const checkRole = (roles) => (req, res, next) => {
+        const currentUser = req.session.currentUser;
+        if (!currentUser || !roles.includes(currentUser.role)) {
+            return res.sendStatus(403); // Forbidden
+        }
+        next();
+    };
+
+    // Create a quiz (Faculty only)
+    app.post("/api/quizzes", checkRole(['faculty']), async (req, res) => {
         try {
             const quiz = await dao.createQuiz(req.body);
             res.status(201).json(quiz);
@@ -13,7 +21,7 @@ export default function QuizRoutes(app) {
         }
     });
 
-    // Get a quiz by ID
+    // Get a quiz by ID (All users)
     app.get("/api/quizzes/:quizId", async (req, res) => {
         try {
             const quiz = await dao.getQuizById(req.params.quizId);
@@ -27,8 +35,8 @@ export default function QuizRoutes(app) {
         }
     });
 
-    // Get quizzes by student ID
-    app.get("/api/students/:studentId/quizzes", async (req, res) => {
+    // Get quizzes by student ID (Students only)
+    app.get("/api/students/:studentId/quizzes", checkRole(['student']), async (req, res) => {
         const { studentId } = req.params;
         try {
             const courses = await Course.find({ students: studentId });
@@ -40,8 +48,8 @@ export default function QuizRoutes(app) {
         }
     });
 
-    // Submit quiz answers
-    app.post("/api/quizzes/:quizId/submit", async (req, res) => {
+    // Submit quiz answers (Students only)
+    app.post("/api/quizzes/:quizId/submit", checkRole(['student']), async (req, res) => {
         const { userId, answers, attempt } = req.body;
         try {
             const quiz = await dao.getQuizById(req.params.quizId);
@@ -71,7 +79,7 @@ export default function QuizRoutes(app) {
         }
     });
 
-    // Get quiz answers by quiz ID and user ID
+    // Get quiz answers by quiz ID and user ID (All users)
     app.get("/api/quizzes/:quizId/answers/:userId", async (req, res) => {
         const { quizId, userId } = req.params;
         try {
@@ -86,12 +94,23 @@ export default function QuizRoutes(app) {
         }
     });
 
-    // Update a quiz
-    app.put("/api/quizzes/:quizId", async (req, res) => {
+    // Update a quiz (Faculty only)
+    app.put("/api/quizzes/:quizId", checkRole(['faculty']), async (req, res) => {
         const quizId = req.params.quizId;
         try {
             const updatedQuiz = await dao.updateQuiz(quizId, req.body);
             res.json(updatedQuiz);
+        } catch (error) {
+            res.status(500).send(error);
+        }
+    });
+
+    // Delete a quiz (Faculty only)
+    app.delete("/api/quizzes/:quizId", checkRole(['faculty']), async (req, res) => {
+        const quizId = req.params.quizId;
+        try {
+            await dao.deleteQuiz(quizId);
+            res.sendStatus(204);
         } catch (error) {
             res.status(500).send(error);
         }
